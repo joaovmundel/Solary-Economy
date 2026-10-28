@@ -3,7 +3,9 @@ main: "${project.mainClass}"
 version: "${project.version}"
 description: "${project.description}"
 author: "${project.author}"
-softdepend: ["Vault", "LegendChat", "PlaceholderAPI"]
+softdepend: ["Vault", "Legendchat", "PlaceholderAPI"]
+# A economia precisa estar registrada no Vault antes destes plugins lerem o provedor de economia.
+loadbefore: ["ChestShop", "Jobs", "Factions", "SignShop", "Shopkeepers", "MyCommand"]
 load: "STARTUP"
 commands:
   money:

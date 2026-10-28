@@ -14,7 +14,8 @@
 #     Versão: ${project.version}
 #/------------------------------------------------------------------/
 
-
+# Chaves que faltarem neste arquivo usam o valor padrão do plugin (o console avisa quais).
+# Alterações em "mysql" só valem após reiniciar o servidor. O resto vale com /money reload.
 
 
 #Configuração do banco de dados
@@ -31,33 +32,58 @@ mysql:
   username: "root"
   #coloque a senha do seu usuário do seu banco de dados ex: "pass123"
   password: ""
-  #coloque o nome da tabela que vai ser usada pelo plugin
+  #nome base da tabela. As contas ficam em "<table>_accounts".
+  #A tabela antiga "<table>" (versões 1.5.x) é importada automaticamente na primeira execução e nunca é alterada.
   table: "solaryeconomy"
-  
-  
+
+
 #Configurações gerais do plugin
 
-#coloque aqui o mundo principal do seu servidor
+#coloque aqui o mundo principal do seu servidor (usado para buscar prefixos pelo Vault)
 world: "world"
 
 #coloque true para usar a API Vault, (é recomendado usar, para que os demais plugins tenha acesso ao Solary-Economy)
 use_vault: true
 
 #coloque aqui o money que o jogador vai começar quando logar no servidor pela primeira vez
+#ATENÇÃO (servidor pirata/offline-mode): qualquer pessoa pode entrar com vários nomes e juntar esse valor.
+#Se você não usa AuthMe ou similar com limite de contas por IP, prefira 0.
 start_value: 0
-  
+
+#quantidade de casas decimais do saldo (0 a 8). O que passar disso é descartado, nunca arredondado a favor do jogador.
+decimal_places: 2
+
+#maior saldo que uma conta pode ter. Operações que ultrapassem esse valor são recusadas.
+max_balance: "1000000000000000000"
+
+#menor valor aceito em /money pay
+pay_minimum: 1
+
+#de quantos em quantos segundos as alterações de saldo são gravadas no banco de dados.
+#(as gravações acontecem em segundo plano e também ao desligar o servidor)
+save_interval: 30
+
+#coloque true para registrar toda alteração de saldo em plugins/Solary-Economy/transactions.log
+audit_log: true
+
+#coloque true para consultar o GitHub ao iniciar e avisar se existe uma versão nova
+check_updates: true
+
+#coloque true para mostrar mensagens extras de diagnóstico no console
+debug: false
+
 #configurações gerais do money top
 economy_top:
 
   #coloque aqui a quantidade de jogadores que vai aparecer no money top
   size: 10
-  
+
   #coloque aqui o tempo para ficar atualizando o money top (em segundos) ex: (300 segundos = 5 minutos)
   refresh_time: 300
-  
+
   #coloque em true para usar prefix's no money top (precisa do Vault)
   prefix: true
-  
+
   #coloque aqui o tamanho máximo do nome da conta que vai aparecer no money top Dica: (use para remover as factions no money top :D)
   #se o nome da conta for maior que esse valor, ela não aparecerá no money top e nem será dada a tag magnata
   name_size: 16
@@ -67,10 +93,10 @@ currency_name:
 
   #coloque aqui o nome da economia em modo plural ex: coins
   plural: coins
-  
+
   #coloque aqui o nome da economia em modo singular ex: coin
   singular: coin
-  
+
 #coloque true para usar a tag magnata no moneytop/chat (precisa do legendchat para mostrar no chat)
 # use a tag {solary_economy_magnata} no legendchat
 magnata_tag: true
@@ -87,10 +113,10 @@ abbreviations:
     messages: true
     #coloque true se você quer que o saldo seja abreviado nos comandos
     commands: true
-    
+
   #define quantas casas decimais serão exibidas nas mensagens (ex: 1.5k ao invés de 1k)
   decimal_places: 1
-  
+
   #Aqui você cria o dicionário das abreviações, você pode adicionar quantas abreviações quiser.
   dictionary:
 
@@ -100,18 +126,18 @@ abbreviations:
       #aqui você define como a abreviação será exibida nas mensagens. Ex: "Você acaba de receber 32k de fulano"
       display: "k"
       #aqui você define o divisor para essa abreviação. Ex: cada k vale 1000 coins. (32000coins / 1000)= 32k coins e (32k coins * 1000) = 32000 coins
-      divider: 1000    
-      
+      divider: 1000
+
     #Milhão
     m:
       display: "m"
       divider: 1000000
-      
+
     #Bilhão
     b:
       display: "b"
       divider: 1000000000
-      
+
     #Trilhão
     t:
       display: "t"
@@ -135,7 +161,7 @@ abbreviations:
 #/money reload - solaryeconomy.commands.reload
 #/money magnata - solaryeconomy.commands.magnata
 #
-###################[Comandos]#######################  
+###################[Comandos]#######################
 
 ###################[Placeholders]#######################
 #

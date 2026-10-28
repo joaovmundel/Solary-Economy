@@ -4,20 +4,25 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.redeskyller.bukkit.solaryeconomy</groupId>
 	<artifactId>Solary-Economy</artifactId>
-	<version>1.5.3</version>
+	<version>1.6.0</version>
 	<name>Solary-Economy</name>
 	<description>Um sistema de economia para seu servidor Minecraft.</description>
 
-
 	<properties>
+		<!-- Bytecode Java 8: o servidor 1.5.2 deste projeto roda no Java 8. O código-fonte só usa recursos
+			do Java 7 (sem lambdas), então para Java 7 basta trocar para 1.7 e compilar com um JDK até o 19. -->
 		<jdkVersion>1.8</jdkVersion>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.mainClass>com.redeskyller.bukkit.solaryeconomy.SolaryEconomy</project.mainClass>
 		<project.author>Sr_Edition</project.author>
-		<libsPath>${project.basedir}/src/main/libs</libsPath>
-		<repoPath>${libsPath}/repo</repoPath>
 	</properties>
 
 	<repositories>
+		<!-- Bukkit 1.5.2 (a API original saiu do ar junto com o repo.bukkit.org) -->
+		<repository>
+			<id>elmakers-repo</id>
+			<url>https://maven.elmakers.com/repository/</url>
+		</repository>
 		<repository>
 			<id>jitpack.io</id>
 			<url>https://jitpack.io</url>
@@ -31,10 +36,12 @@
 
 	<dependencies>
 
+		<!-- Compilado contra a API 1.5.2: tudo que roda aqui também roda em servidores mais novos,
+			desde que não se use APIs removidas (ex.: Bukkit#getOnlinePlayers muda de assinatura). -->
 		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<version>1.18.36</version>
+			<groupId>org.bukkit</groupId>
+			<artifactId>bukkit</artifactId>
+			<version>1.5.2-R0.1</version>
 			<scope>provided</scope>
 		</dependency>
 
@@ -42,13 +49,6 @@
 			<groupId>com.github.MilkBowl</groupId>
 			<artifactId>VaultAPI</artifactId>
 			<version>1.7</version>
-			<scope>provided</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.github.paperspigot</groupId>
-			<artifactId>PaperSpigot</artifactId>
-			<version>1.8.8-R0.1-SNAPSHOT-latest</version>
 			<scope>provided</scope>
 		</dependency>
 
@@ -66,7 +66,36 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<!-- Os testes usam o SQLite embutido no CraftBukkit/Spigot (mesmo driver do servidor). -->
+		<dependency>
+			<groupId>org.xerial</groupId>
+			<artifactId>sqlite-jdbc</artifactId>
+			<version>3.7.2</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.13.2</version>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
+
+	<profiles>
+		<!-- Em JDK 9+ compila com a opção release=8: o compilador recusa APIs mais novas que o Java 8
+			(ex.: String.isBlank(), do Java 11, que o plugin antigo usava e quebrava em Java 8). -->
+		<profile>
+			<id>release-8-on-newer-jdk</id>
+			<activation>
+				<jdk>[9,)</jdk>
+			</activation>
+			<properties>
+				<maven.compiler.release>8</maven.compiler.release>
+			</properties>
+		</profile>
+	</profiles>
 
 	<build>
 		<defaultGoal>clean package</defaultGoal>
@@ -87,35 +116,15 @@
 				<configuration>
 					<source>${jdkVersion}</source>
 					<target>${jdkVersion}</target>
+					<encoding>UTF-8</encoding>
 				</configuration>
 			</plugin>
 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.0.0</version>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<filters>
-						<filter>
-							<artifact>*:*</artifact>
-							<excludes>
-								<exclude>**/*.java</exclude>
-								<exclude>**/*.SF</exclude>
-								<exclude>**/*.DSA</exclude>
-							</excludes>
-						</filter>
-					</filters>
-				</configuration>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.22.2</version>
 			</plugin>
-
 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
