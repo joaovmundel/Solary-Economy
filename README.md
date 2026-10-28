@@ -8,7 +8,9 @@
 
 ---
 
-**Solary-Economy** is a robust, lightweight, and highly customizable economy plugin designed specifically for Minecraft servers running version **1.8**. It offers a complete economy management experience — from basic operations like balance checking and transfers to advanced features such as leaderboards, plugin integrations, and support for multiple databases. If you're looking for a reliable, efficient, and easy-to-use economy system, **Solary-Economy** is the perfect choice.
+**Solary-Economy** is a robust, lightweight, and highly customizable economy plugin for Minecraft servers. Version **1.6** is built against the **Spigot/CraftBukkit 1.5.2** API and runs on **Java 8**. It offers a complete economy management experience — from basic operations like balance checking and transfers to advanced features such as leaderboards, plugin integrations, and support for multiple databases.
+
+> **Compatibility.** Tested on Spigot `git-Spigot-934` (1.5.2) with Vault 1.2.25, Legendchat 1.1.2, ChestShop 3.5, Essentials 2.11.1 and PlugMan 1.8.4. Only the 1.5.2 API is used (nothing that changed between versions, such as `Bukkit.getOnlinePlayers()`), so newer servers are expected to work, but they are **not** tested. The MySQL backend has unit tests for its SQL but has not been run against a real MySQL server.
 
 ### 🌟 Main Features
 
@@ -16,28 +18,28 @@
 
 * Create, delete, and manage player accounts via console or in-game commands.
 * Easily set, add, or remove player balances with intuitive commands.
-* Transfer money securely and quickly between players.
+* Transfer money atomically between players: either both balances change or neither does.
 
 **2. Richest Player Leaderboard**
 
 * Display the top richest players using `/money top`.
 * Customize how many players are shown and how often the leaderboard updates.
-* Highlight the server’s **wealthiest player** with a custom tag in chat.
+* Highlight the server’s **wealthiest player** with a custom tag in chat (Legendchat).
 
 **3. Vault Integration**
 
-* Compatible with the **Vault** API for seamless interaction with other plugins.
-* Supports placeholders to display balances and other info in chat or scoreboards.
+* Compatible with the **Vault** API for seamless interaction with other plugins (shops, jobs, factions...).
+* Supports PlaceholderAPI placeholders on servers that have it.
 
 **4. Value Abbreviations**
 
-* Shorten large amounts (thousands, millions, billions) with customizable suffixes (e.g., 1k, 1M, 1B).
-* Configure decimal places and divisors for each abbreviation.
+* Shorten large amounts (thousands, millions, billions) with customizable suffixes (e.g., 1k, 1m, 1b).
+* Players can type them too: `/money pay Steve 1,5k`.
 
 **5. Multi-Database Support**
 
 * Choose between **SQLite** (default) or **MySQL** to store economy data.
-* Easily configure database settings via the `config.yml` file.
+* Your old data is imported automatically, and the old table is never touched.
 
 **6. Full Customization**
 
@@ -46,26 +48,15 @@
 
 **7. Commands & Permissions**
 
-* Easy-to-use commands like `/money`, `/money pay`, `/money top`, `/money magnata`, and more.
+* Easy-to-use commands like `/money`, `/money pay`, `/money top`, `/money magnata`, and more, with tab completion.
 * Detailed permission system to control access to each feature.
 
-**8. Developer API**
+**8. Safe by design**
 
-* Integrate **Solary-Economy** into your own plugins with a simple and powerful API.
-* Access data like the current magnate, top player rankings, and player balances.
-
-**9. Lightweight & Efficient**
-
-* Built for performance, designed to minimize server load.
-* Ideal for small, medium, and large servers alike.
-
-### 🎯 Why Use Solary-Economy?
-
-* **User-Friendly**: Simple commands and intuitive configuration make it easy for admins of all skill levels.
-* **Customizable**: Adapt everything to your server’s theme — from messages to currency names.
-* **Compatible**: Works flawlessly with popular plugins like **Vault**, **PlaceholderAPI**, and **LegendChat**.
-* **Reliable**: Stable and well-tested system that ensures player data is safe.
-* **Dev-Friendly**: A clean and easy-to-use API for custom integrations.
+* Balances can never go negative; every amount from a command or from another plugin is validated.
+* Every SQL statement is parameterized, so a player named `a' OR '1'='1` is just a (harmless) name.
+* Writes happen in the background in a single transaction, and again on shutdown. If the database is down, nothing is lost: changes are retried, and as a last resort dumped to a CSV file.
+* Every balance change is recorded in `transactions.0.log` (rotated, 5 × 1 MB).
 
 ---
 
@@ -73,19 +64,21 @@
 
 ```text
 /money                        - View your current balance.
-/money <player>              - View another player's balance.
-/money create <name> <amount> - Create a new account.
-/money delete <name>         - Delete an account.
-/money pay <player> <amount> - Send money to another player.
-/money set <player> <amount> - Set a player's balance.
-/money add <player> <amount> - Add money to a player's account.
-/money remove <player> <amount> - Remove money from a player's account.
-/money toggle                - Enable/disable receiving money.
-/money top                  - View the richest players.
-/money magnata              - View the current server magnate.
-/money reload               - Reload config and message files.
-/money help                 - View the list of available commands.
+/money <player>               - View another player's balance.
+/money create <name> <amount> - Create a new account.            (alias: criar, new)
+/money delete <name>          - Delete an account.               (alias: deletar, del)
+/money pay <player> <amount>  - Send money to another player.    (alias: pagar, enviar)
+/money set <player> <amount>  - Set a player's balance.          (alias: definir, setar)
+/money add <player> <amount>  - Add money to a player's account. (alias: give)
+/money remove <player> <amount> - Remove money from an account.  (alias: take)
+/money toggle                 - Enable/disable receiving money.
+/money top                    - View the richest players.        (alias: rank)
+/money magnata                - View the current server magnate.
+/money reload                 - Reload config and message files. (alias: recarregar)
+/money help                   - View the list of available commands. (alias: ajuda, ?)
 ```
+
+Amounts accept `1500`, `1,5` or `1.5` (both are decimal separators) and, when enabled, abbreviations such as `32k` or `2,5m`. Anything else (`5q`, `-5`, `1e9`, `abc`) is refused with the "invalid value" message.
 
 ---
 
@@ -105,254 +98,112 @@ solaryeconomy.commands.reload        - Use /money reload
 solaryeconomy.commands.magnata       - Use /money magnata
 ```
 
+`/money`, `/money help` and `/money <your own name>` need no permission. The other nodes are not declared in `plugin.yml`, so without a permissions plugin only operators have them.
+
 ---
 
-## 📜 `config.yml`
+## 📜 Configuration
 
-```yaml
-#########################[ Solary-Economy ]#########################
-##                                                                ##
-##       Found a bug? Please report it!                           ##
-##                                                                ##
-##       Email: theprog.matheus@gmail.com                         ##
-##       Discord: sr_edition                                      ##
-##                                                                ##
-####################################################################
+Both files are created in `plugins/Solary-Economy/` on the first run, fully commented (in Portuguese): see [`config.yml`](src/main/resources/config.yml) and [`mensagens.yml`](src/main/resources/mensagens.yml). A key missing from your file simply uses the built-in default, and the console tells you which ones. An invalid value (a typo, a number out of range) is reported and replaced by the default instead of breaking the plugin.
 
-#/------------------------------------------------------------------/
-#     Author: ${project.author}
-#     Version: ${project.version}
-#/------------------------------------------------------------------/
+| Key | Default | Meaning |
+|---|---|---|
+| `mysql.enable` | `false` | `true` for MySQL, otherwise SQLite in `storage.db`. Needs a restart. |
+| `mysql.hostname` / `database` / `username` / `password` | | Connection data (`hostname` may include a port: `localhost:3306`). |
+| `mysql.table` | `solaryeconomy` | Base table name. Accounts live in `<table>_accounts`; the old `<table>` is only read, once. |
+| `world` | `world` | Main world, used to look up Vault prefixes of offline players. |
+| `use_vault` | `true` | Register this economy in Vault. Needs a restart. |
+| `start_value` | `0` | Balance of a new account. **See the offline-mode notes below.** |
+| `decimal_places` | `2` | Decimals kept in balances (0–8). Extra decimals are dropped, never rounded in the player's favor. |
+| `max_balance` | `1000000000000000000` | Largest balance; an operation that would exceed it is refused. |
+| `pay_minimum` | `1` | Smallest amount accepted by `/money pay`. |
+| `save_interval` | `30` | Seconds between background writes to the database. |
+| `audit_log` | `true` | Record every balance change in `transactions.0.log`. |
+| `check_updates` | `true` | Ask GitHub once at startup whether a newer release exists. |
+| `debug` | `false` | Extra diagnostic lines in the console. |
+| `economy_top.size` / `refresh_time` / `prefix` / `name_size` | `10` / `300` / `true` / `16` | Leaderboard size, refresh seconds, Vault prefixes, longest name listed (hides factions). |
+| `currency_name.singular` / `plural` | `coin` / `coins` | Currency names. |
+| `magnata_tag` / `magnata_broadcast` | `true` / `true` | Legendchat tag `{solary_economy_magnata}` and the "new magnate" announcement. |
+| `abbreviations.*` | | Enable per messages/commands, `decimal_places`, and the `dictionary` (`display` + `divider`). |
 
-# Database Configuration
+`/money reload` re-reads both files; if one of them is broken nothing changes and the reason is shown. Database settings and `use_vault` only change after a restart (the console says so).
 
-mysql:
-  # Set to true to use MySQL. If false, SQLite (file "storage.db") will be used
-  enable: false
-  # Set your database host, e.g., "localhost"
-  # If your MySQL runs on a different port, specify it (e.g., "localhost:2789")
-  hostname: "localhost"
-  # Your database name, e.g., "minecraft"
-  database: "minecraft"
-  # Your database username
-  username: "root"
-  # Your database password
-  password: ""
-  # Table name used by the plugin
-  table: "solaryeconomy"
+### Placeholders (PlaceholderAPI, where installed)
 
-# General plugin configuration
-
-# Main world name
-world: "world"
-
-# Enable Vault API integration (recommended for compatibility with other plugins)
-use_vault: true
-
-# Starting money for new players
-start_value: 0
-
-# Money Top (leaderboard) configuration
-economy_top:
-
-  # Number of players shown in /money top
-  size: 10
-
-  # Time interval (in seconds) to refresh the leaderboard (e.g., 300 = 5 minutes)
-  refresh_time: 300
-
-  # Enable prefixes in the money top (requires Vault)
-  prefix: true
-
-  # Max account name length to show on leaderboard (useful to hide faction names)
-  # If the account name is longer than this, it will not appear in /money top or receive the magnate tag
-  name_size: 16
-
-# Server currency configuration
-currency_name:
-
-  # Currency name in plural (e.g., coins)
-  plural: coins
-
-  # Currency name in singular (e.g., coin)
-  singular: coin
-
-# Enable magnate tag in leaderboard/chat (requires LegendChat plugin)
-# Use the tag {solary_economy_magnata} in LegendChat
-magnata_tag: true
-
-# Broadcast a message to all players when a new magnate is crowned
-magnata_broadcast: true
-
-# Value abbreviations configuration (useful for OP economies)
-abbreviations:
-
-  # Enable or disable abbreviation features
-  enable:
-    # Abbreviate values in messages
-    messages: true
-    # Abbreviate values in commands
-    commands: true
-
-  # Number of decimal places shown in abbreviations (e.g., 1.5k instead of 1k)
-  decimal_places: 1
-
-  # Abbreviation dictionary (you can add as many as you like)
-  dictionary:
-
-    # Thousand
-    k:
-      # How it appears in messages (e.g., 32k)
-      display: "k"
-      # Divider used (e.g., 1k = 1000)
-      divider: 1000
-
-    # Million
-    m:
-      display: "m"
-      divider: 1000000
-
-    # Billion
-    b:
-      display: "b"
-      divider: 1000000000
-
-    # Trillion
-    t:
-      display: "t"
-      divider: 1000000000000
-
-# Permissions:
-#
-###################[Commands]#######################
-#
-# /money - no permission required
-# /money help - no permission required
-# /money [player] - solaryeconomy.commands.money.other
-# /money top - solaryeconomy.commands.top
-# /money create - solaryeconomy.commands.criar
-# /money delete - solaryeconomy.commands.deletar
-# /money add - solaryeconomy.commands.add
-# /money remove - solaryeconomy.commands.remove
-# /money set - solaryeconomy.commands.set
-# /money pay - solaryeconomy.commands.pay
-# /money toggle - solaryeconomy.commands.toggle
-# /money reload - solaryeconomy.commands.reload
-# /money magnata - solaryeconomy.commands.magnata
-#
-###################[Commands]#######################
-
-###################[Placeholders]#######################
-#
-# %solaryeconomy_balance% - Player's raw balance
-# %solaryeconomy_balance_formatted% - Player's formatted balance
-#
-###################[Placeholders]#######################
+```text
+%solaryeconomy_balance%            - Player's balance as in messages, e.g. "1.5k" (or "1.500 coins" without abbreviations)
+%solaryeconomy_balance_formatted%  - Short form, e.g. "1.5k" (or "1.5K" without abbreviations)
 ```
 
 ---
 
-## 📜 `mensagens.yml`
+## 🏴‍☠️ Offline-mode (cracked) servers and UUIDs
 
-```yaml
-#/------------------------------------------------------------------/
-#     Autor: ${project.author}
-#     Versão: ${project.version}
-#/------------------------------------------------------------------/
+Minecraft 1.5.2 has no player UUIDs, and a server in offline mode could not trust them anyway. Accounts are therefore identified by **name**, compared **case-insensitively**: `Steve`, `steve` and `STEVE` are one account (the server itself treats them as one player when they log in). The name is shown with the casing used when the account was created.
 
+What this plugin cannot do is stop someone from logging in *as* somebody else in offline mode. Use an authentication plugin (AuthMe or similar) and keep `online-mode` consistent. Two more things to consider:
 
-
-
-#configurações de todas as mensagens do Solary-Economy
-
-NO_PERMISSION: "&cVocê não tem permissão para isso."
-PLAYER_NOTFOUND: "&cJogador não encontrado em nosso banco de dados."
-MONEY: "&aMoney: {valor}"
-NO_MONEY: "&cVocê não tem money suficiente para isso."
-MONEY_TOGGLE: "&aRecebimento de coins: {toggle}"
-MONEY_TOGGLED: "&cEste jogador está com o recebimento de coins desativado."
-MONEY_OTHER: "&aMoney de {player}: {valor}"
-MONEY_TOP_NULL: "&cNão existe jogadores cadastrados ainda."
-MONEY_TOP_TITLE: "&2Top 10 Mais Ricos &7(Atualizado de 5 em 5 minutos)"
-MONEY_TOP_FORMAT: "&a{i}. &2{player}: &7({valor})"
-NUMBER_NULL: "&cValor incorreto, por favor insira um valor válido."
-ACCOUNT_EXISTS: "&cJá existe uma conta com o nome '{nome}'!"
-ACCOUNT_CREATE: "&aConta '{nome}' criada com sucesso!"
-ACCOUNT_DELETE: "&aConta '{nome}' deletada com sucesso!"
-ACCOUNT_NOFOUND: "&cConta '{nome}' não encontrada em nosso banco de dados."
-MONEY_SET: "&aFoi setado a quantia de {valor} na conta de {player} "
-MONEY_ADD: "&aFoi adicionado a conta de {player} a quantia de {valor}"
-MONEY_REMOVE: "&aFoi removido a quantia de {valor} da conta de {player} "
-MONEY_PAY_SENDER: "&aVocê enviou {valor} para {player}"
-MONEY_PAY_RECEIVER: "&aVocê acaba de receber {valor} de {player}"
-MONEY_PAY_ERRO: "&cVocê não pode enviar coins a si mesmo."
-MAGNATA_TAG: "&2[$] "
-MAGNATA_VIEW: "&2[$] &aAtual magnata do servidor: &7{player} &7com a quantia de {valor}"
-MAGNATA_NEW: "&2[$] &aNovo magnata: &7{player} &7com a quantia de {valor}"
-MAGNATA_NOT_FOUND: "&2[$] &cNenhum magnata ainda."
-```
+* **`start_value`:** if every new name receives money, one person with many names (or a bot) can collect it and `/money pay` it to a main account. Keep it at `0` unless you limit accounts per IP.
+* A name that cannot be an account (empty, over 40 characters, control characters or `§`) never gets an account; the console logs a warning, since in offline mode that usually means someone is probing the server.
 
 ---
 
-## 💻 How to Add Solary-Economy to Your Maven Project
+## ⬆️ Upgrading from 1.5.x
 
-### 1. Add the Maven Repository
+Drop the new jar in and start the server. On the first run the old table (`solaryeconomy`: `name`, `valor`, `toggle`) is imported into the new one (`solaryeconomy_accounts`), and the console reports everything it had to adjust:
 
-In your `pom.xml` inside `<repositories>`:
+* Accounts that differed only by casing (`Steve` / `steve`) become one account; the **larger balance is kept** and the console says which two were merged.
+* Rows with an unreadable balance or an invalid name are skipped, each with a warning.
+* Balances above `max_balance` are reduced to it; fractions beyond `decimal_places` are dropped; negative balances (the old plugin allowed them) are kept and counted.
 
-```xml
-<repositories>
-    <repository>
-        <id>github-theprogmatheus-maven-repository</id>
-        <url>https://raw.githubusercontent.com/theprogmatheus/maven-repository/master/</url>
-    </repository>
-</repositories>
-```
+The old table is not modified or deleted, so going back to 1.5.x is possible (without anything that happened after the upgrade). The import runs only while the new table is empty, and is retried at the next start if it fails.
 
-### 2. Add the Dependency
-
-Inside `<dependencies>`:
-
-```xml
-<dependency>
-    <groupId>com.redeskyller.bukkit.solaryeconomy</groupId>
-    <artifactId>Solary-Economy</artifactId>
-    <version>1.5.3</version>
-    <scope>provided</scope>
-</dependency>
-```
+Other behavior changes: `/money pay`, `remove` and Vault withdrawals can no longer overdraw an account; an unknown abbreviation (`5q`) is an error instead of "5"; `abbreviations.decimal_places` is finally honored (it used to be hard-coded to 2); the leaderboard is computed from memory, so it is exact for any size (the old query sorted with `CAST(valor AS DECIMAL)`, which in MySQL defaults to 10 digits); balances are written every `save_interval` seconds instead of every 5 minutes.
 
 ---
 
-### 3. Using the API
+## 💻 For Developers
+
+Other plugins should talk to **Vault**: it works with every economy plugin. The classes below are for those that want more, such as the richest player or the leaderboard. They live in the Solary-Economy jar (declare it as `provided`/`depend`).
 
 ```java
 import com.redeskyller.bukkit.solaryeconomy.SolaryEconomy;
-import com.redeskyller.bukkit.solaryeconomy.manager.Economia;
-import com.redeskyller.bukkit.solaryeconomy.objects.RankAccount;
+import com.redeskyller.bukkit.solaryeconomy.economy.EconomyService;
+import com.redeskyller.bukkit.solaryeconomy.economy.RankAccount;
+import com.redeskyller.bukkit.solaryeconomy.economy.TransactionResult;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public class YourPlugin {
 
     public void yourMethod() {
-        // Get the current magnate
+        // The current magnate (null if nobody is ranked) and the leaderboard, richest first
         RankAccount magnate = SolaryEconomy.getMagnata();
-        System.out.println("Current magnate: " + magnate.getName() + " with " + magnate.getBalance());
-
-        // Get the leaderboard
         List<RankAccount> leaderboard = SolaryEconomy.getMoneyTop();
-        for (RankAccount account : leaderboard) {
-            System.out.println(account.getName() + ": " + account.getBalance());
-        }
 
-        // Access the economy manager
-        Economia economy = SolaryEconomy.economia;
+        // The economy: thread-safe, names are case-insensitive, nothing throws for "business" failures
+        EconomyService economy = SolaryEconomy.getEconomy(); // null while the plugin is disabled
         BigDecimal balance = economy.getBalance("PlayerName");
-        System.out.println("Player balance: " + balance);
+
+        TransactionResult result = economy.transfer("Alice", "Bob", new BigDecimal("10"));
+        if (!result.isSuccess())
+            System.out.println("Transfer refused: " + result); // INSUFFICIENT_FUNDS, RECEIVING_DISABLED, ...
     }
 }
 ```
+
+> The Java API of 1.5.x (`SolaryEconomy.economia`, `Economia`, the static `config`/`database` fields) was removed; the example that used to be here did not match the code either. Vault is unchanged.
+
+### Building
+
+```text
+mvn clean package        # -> build/Solary-Economy-<version>.jar
+```
+
+Use a JDK 8 or newer (it was verified with JDK 8 and 25). With JDK 9+ the build uses `--release 8`, so the compiler rejects APIs newer than Java 8. The source only uses Java 7 features; to target Java 7, set `jdkVersion` to `1.7` in the `pom.xml` and build with a JDK up to 19. The Bukkit 1.5.2 API comes from `maven.elmakers.com`, because `repo.bukkit.org` no longer exists.
+
+The test suite (`mvn test`, 154 tests) covers the economy rules and their concurrency (parallel transfers in opposite directions must neither deadlock nor change the total), amount parsing, SQLite persistence and rollback, the import of old data, outage handling, the commands, and more. It runs on the same SQLite driver version that 1.5.2 bundles.
 
 ---
 
